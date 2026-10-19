@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PISA Score Translator</title>
+<meta name="description" content="How many years of schooling separate students from less and more advantaged families. PISA 2025 data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f5f7fb;
+    --sheet: #ffffff;
+    --ink: #17233f;
+    --ink-soft: #55607a;
+    --rule: #d6deec;
+    --low: #8a97b3;
+    --high: #17233f;
+    --marker: #ffd84d;
+    --marker-ink: #17233f;
+    --link: #2f5bd3;
+    --no: #b0412e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0f1626; --sheet: #172036; --ink: #e9edf6; --ink-soft: #a3adc4;
+      --rule: #2b3653; --low: #6f7c99; --high: #e9edf6; --marker: #e9c54a;
+      --marker-ink: #17233f; --link: #8eaaff; --no: #f08a76;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0f1626; --sheet: #172036; --ink: #e9edf6; --ink-soft: #a3adc4;
+    --rule: #2b3653; --low: #6f7c99; --high: #e9edf6; --marker: #e9c54a;
+    --marker-ink: #17233f; --link: #8eaaff; --no: #f08a76;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 17px/1.55 "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1, h2, h3 { line-height: 1.2; margin: 0; }
+  p { margin: 0 0 12px; }
+  a { color: var(--link); }
+  :focus-visible { outline: 3px solid var(--link); outline-offset: 2px; border-radius: 6px; }
+
+  /* Header */
+  .brand { font-weight: 600; font-size: .95rem; color: var(--ink-soft); margin-bottom: 14px; }
+  .cover { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; padding: 48px 16px; background: #17233f; color: #f5f7fb; }
+  .cover-in { max-width: 760px; width: 100%; margin: 0 auto; }
+  .cover .brand { color: color-mix(in srgb, #f5f7fb 70%, transparent); }
+  .cover-title { font-weight: 800; font-size: clamp(2.6rem, 10vw, 5.2rem); line-height: 1; letter-spacing: -.03em; margin: 0 0 22px; }
+  .cover-lead { font-size: clamp(1.25rem, 3.6vw, 1.7rem); font-weight: 600; line-height: 1.3; max-width: 26ch; margin: 0 0 30px; }
+  .ruler { display: flex; gap: 6px; max-width: 520px; }
+  .ruler span { flex: 1; height: 44px; border-radius: 6px; background: color-mix(in srgb, #f5f7fb 14%, transparent); position: relative; overflow: hidden; }
+  .ruler span i { position: absolute; inset: 0 auto 0 0; background: var(--marker); width: 0; transition: width .5s ease; }
+  .cover-cap { font-size: .9rem; margin: 10px 0 34px; color: color-mix(in srgb, #f5f7fb 75%, transparent); }
+  .cta { display: inline-block; font-weight: 600; text-decoration: none; padding: 14px 26px; border-radius: 999px; background: var(--marker); color: var(--marker-ink); }
+  .cover-note { font-size: .85rem; margin: 22px 0 0; color: color-mix(in srgb, #f5f7fb 65%, transparent); }
+  :root[data-theme="dark"] .cover { background: #0a1020; color: #e9edf6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cover { background: #0a1020; color: #e9edf6; } }
+  html { scroll-behavior: smooth; }
+  #calc { scroll-margin-top: 24px; }
+  .title { font-weight: 800; font-size: clamp(1.7rem, 5vw, 2.5rem); line-height: 1.15; letter-spacing: -.015em; margin: 0 0 14px; max-width: 24ch; }
+  .panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 18px; padding: 22px; margin-top: 22px; }
+  .pick { width: 100%; font: inherit; font-weight: 600; padding: 11px 14px; border-radius: 12px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); cursor: pointer; }
+  .sentence { font-weight: 800; font-size: clamp(1.35rem, 4.2vw, 1.9rem); line-height: 1.25; letter-spacing: -.01em; margin: 0; }
+  .hl {
+    background: linear-gradient(transparent 12%, var(--marker) 12%, var(--marker) 88%, transparent 88%);
+    color: var(--marker-ink); padding: 0 .12em; white-space: nowrap;
+  }
+  .sub { color: var(--ink-soft); max-width: 60ch; }
+
+  /* Score scale */
+  .scale-wrap { margin: 18px 0 4px; }
+  .scale { position: relative; height: 136px; }
+  .axis { position: absolute; left: 0; right: 0; top: 74px; height: 2px; background: var(--rule); }
+  .band { position: absolute; top: 62px; height: 26px; background: var(--marker); transition: left .5s ease, width .5s ease; }
+  .tick { position: absolute; top: 62px; width: 2px; height: 26px; background: var(--marker-ink); opacity: .35; }
+  .dot {
+    position: absolute; top: 64px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%;
+    border: 3px solid var(--sheet); transition: left .5s ease;
+  }
+  .dot.low { background: var(--low); }
+  .dot.high { background: var(--high); }
+  .tag { position: absolute; top: 98px; transform: translateX(-50%); text-align: center; white-space: nowrap; font-size: .85rem; transition: left .5s ease; }
+  .tag b { display: block; font-size: 1.05rem; }
+  .tag.low { color: var(--ink-soft); }
+  .gaplabel { position: absolute; top: 22px; transform: translateX(-50%); font-weight: 600; font-size: .95rem; white-space: nowrap; transition: left .5s ease; }
+  .axislbl { position: absolute; top: 40px; font-size: .75rem; color: var(--ink-soft); }
+  .legend { font-size: .85rem; color: var(--ink-soft); margin-top: 8px; }
+
+  /* Controls */
+  .controls { display: grid; gap: 20px; }
+  .ctl-label { display: block; font-weight: 600; font-size: .95rem; margin-bottom: 8px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg button {
+    font: inherit; font-size: .92rem; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink);
+  }
+  .seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .range { font-size: .92rem; color: var(--ink-soft); margin: 8px 0 0; }
+
+  .own-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .own-grid label { display: block; font-size: .85rem; color: var(--ink-soft); margin-bottom: 4px; }
+  .own-grid input { width: 100%; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); }
+
+  /* Sections */
+  section { margin-top: 54px; }
+  h2 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.01em; margin-bottom: 14px; }
+  h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
+
+  .rank { display: grid; gap: 4px; }
+  .rank button {
+    display: grid; grid-template-columns: 9.5em 1fr auto; align-items: center; gap: 12px;
+    font: inherit; text-align: left; background: none; border: 0; padding: 9px 8px; border-radius: 10px;
+    color: var(--ink); cursor: pointer;
+  }
+  .rank button:hover { background: var(--sheet); }
+  .rank button[aria-current="true"] { background: var(--sheet); font-weight: 600; }
+  .rank .bar { height: 14px; background: var(--rule); border-radius: 7px; overflow: hidden; }
+  .rank .bar i { display: block; height: 100%; background: var(--low); border-radius: 7px; }
+  .rank button[aria-current="true"] .bar i { background: var(--marker); }
+  .rank .val { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: .95rem; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .two ul { margin: 0; padding-left: 1.1em; }
+  .two li { margin-bottom: 8px; }
+
+  details.more { border-top: 1px solid var(--rule); padding: 14px 0; }
+  details.more.last { border-bottom: 1px solid var(--rule); }
+  details.more > summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::after { content: "+"; font-weight: 400; font-size: 1.3rem; line-height: 1; color: var(--ink-soft); }
+  details.more[open] > summary::after { content: "–"; }
+  .more-body { padding-top: 12px; font-size: .95rem; }
+  .muted { color: var(--ink-soft); }
+
+  .method { padding: 14px 0; border-bottom: 1px dashed var(--rule); }
+  .method p { margin: 0 0 4px; }
+  .verdict { display: inline-block; font-size: .8rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; margin-top: 4px; }
+  .verdict.yes { background: var(--marker); color: var(--marker-ink); }
+  .verdict.no { border: 1.5px solid var(--no); color: var(--no); }
+  .verdict.part { border: 1.5px solid var(--ink-soft); color: var(--ink-soft); }
+  .conclusion { margin: 16px 0 0; padding: 14px 16px; background: var(--sheet); border-left: 4px solid var(--marker); }
+
+  .gloss { margin: 0; display: grid; grid-template-columns: 11em 1fr; gap: 10px 16px; }
+  .gloss dt { font-weight: 600; }
+  .gloss dd { margin: 0; color: var(--ink-soft); }
+  .sources { font-size: .88rem; color: var(--ink-soft); padding-left: 1.1em; margin: 0; }
+  .sources li { margin-bottom: 6px; }
+
+  .share { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+  .share button {
+    font: inherit; font-weight: 600; padding: 12px 22px; border-radius: 999px; border: 0; cursor: pointer;
+    background: var(--marker); color: var(--marker-ink);
+  }
+  footer { margin-top: 48px; font-size: .85rem; color: var(--ink-soft); }
+
+  @media (max-width: 560px) {
+    main { padding-top: 28px; }
+    .panel { padding: 18px 16px; }
+    .two { grid-template-columns: 1fr; gap: 18px; }
+    .rank button { grid-template-columns: 7.5em 1fr; row-gap: 2px; }
+    .rank .val { grid-column: 2; font-size: .85rem; color: var(--ink-soft); }
+    .gloss { grid-template-columns: 1fr; gap: 2px; }
+    .gloss dd { margin-bottom: 10px; }
+    .own-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="cover">
+  <div class="cover-in">
+    <div class="brand">Sociology group project, KSE</div>
+    <h1 class="cover-title">PISA Score Translator</h1>
+    <p class="cover-lead">Children from less advantaged families are <span class="hl" id="coverYears">4–5 years</span> of schooling behind their peers.</p>
+    <div class="ruler" id="ruler" aria-hidden="true"></div>
+    <p class="cover-cap" id="rulerCap"></p>
+    <a class="cta" href="#calc">Open the calculator</a>
+    <p class="cover-note">PISA 2025 data: Australia, United Kingdom, United States, Czechia.</p>
+  </div>
+</header>
+
+<main>
+  <h2 class="title" id="calc">How many years of schooling separate students from less and more advantaged families?</h2>
+  <p class="sub">In 2025, 15-year-old students took the international PISA science test, run by the Organisation for Economic Co-operation and Development (OECD). We compared the results of children from different family backgrounds and translated the score gap into years of schooling.</p>
+
+  <div class="panel controls">
+    <div>
+      <label class="ctl-label" for="country">Country</label>
+      <select id="country" class="pick"></select>
+    </div>
+    <div>
+      <div class="ctl-label" id="lblGroups">Who we compare</div>
+      <div class="seg" id="presets" role="group" aria-labelledby="lblGroups"></div>
+    </div>
+    <div class="own-grid">
+      <div><label for="low">Score of less advantaged students</label><input id="low" type="number" inputmode="decimal"></div>
+      <div><label for="high">Score of more advantaged students</label><input id="high" type="number" inputmode="decimal"></div>
+    </div>
+    <div>
+      <div class="ctl-label" id="lblFactor">How many PISA points ≈ 1 year of schooling</div>
+      <div class="seg" id="factors" role="group" aria-labelledby="lblFactor"></div>
+    </div>
+  </div>
+
+  <div class="panel result">
+    <p class="sentence" aria-live="polite"><span id="prep">In</span> <span id="loc">Australia</span>, <span id="who"></span> by <span class="hl" id="years">≈ 4.0 years</span> of schooling.</p>
+    <div class="scale-wrap" aria-hidden="true">
+      <div class="scale">
+        <div class="axis"></div>
+        <div class="band" id="band"></div>
+        <div id="ticks"></div>
+        <div class="gaplabel" id="gaplabel"></div>
+        <div class="dot low" id="dotLow"></div>
+        <div class="dot high" id="dotHigh"></div>
+        <div class="tag low" id="tagLow"></div>
+        <div class="tag high" id="tagHigh"></div>
+        <div class="axislbl" id="axMin" style="left:0"></div>
+        <div class="axislbl" id="axMax" style="right:0"></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <p class="range" id="range"></p>
+  </div>
+
+  <section>
+    <h2>Country comparison</h2>
+    <p class="muted">Gap between the least and the most advantaged 25% of students. Click a country to select it in the calculator.</p>
+    <div class="rank" id="rank"></div>
+  </section>
+
+  <section>
+    <div class="two">
+      <div>
+        <h2>The social issue</h2>
+        <p>On average, children from less advantaged families score noticeably lower in PISA: in the four countries we compared, the gap is between 4 and 5.3 years of schooling. From the perspective of conflict theory, unequal access to resources (parents' education, books, tutors, stronger schools) passes inequality from one generation to the next.</p>
+      </div>
+      <div>
+        <h2>Possible solutions</h2>
+        <ul>
+          <li>Extra funding for schools with more children from less advantaged families.</li>
+          <li>Free tutoring and after-school learning support.</li>
+          <li>Early childhood development and parent support programmes.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How we calculated</h2>
+
+    <details class="more">
+      <summary>Method</summary>
+      <div class="more-body">
+        <p>Students in each country were divided into four groups (quartiles) using the weighted distribution of the ESCS index. For each group, we calculated the weighted (W_FSTUWT) mean science score separately for each of the 10 plausible values (PV1SCIE–PV10SCIE) and then averaged these 10 estimates.</p>
+        <p>The score gap was divided by the number of points students gain on average over one school year. The main estimate, about 20 points (≈ 0.2 SD), comes from OECD research (Avvisati &amp; Givord, 2021). Depending on the country, the annual gain ranges from roughly 10 to 25 points, so the calculator shows a range. The conversion into years of schooling is approximate and illustrative.</p>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Methods we considered and why we chose this one</summary>
+      <div class="more-body">
+        <div class="method">
+          <h3>“40 points ≈ 1 year” (older OECD estimate)</h3>
+          <p><b>What it is:</b> early OECD reports based on PISA 2000–2003 data.</p>
+          <p><b>Drawback:</b> later, more precise estimates are half as large, so this figure halves the gap in years.</p>
+          <span class="verdict no">Not chosen</span>
+        </div>
+        <div class="method">
+          <h3>“20 points ≈ 1 year” (current OECD estimate)</h3>
+          <p><b>What it is:</b> Avvisati &amp; Givord (OECD, 2021) compared students of the same age who are in different grades because of their birth date (18 countries). Over one school year, scores rise on average by about 1/5 of a standard deviation, i.e. ≈ 20 PISA points.</p>
+          <p><b>Advantages:</b> estimated on PISA data and specifically for 15-year-olds; the OECD uses it in its own reports.</p>
+          <p><b>Drawback:</b> the value differs by country and has wide confidence intervals: from about 0.1 SD (Malaysia) to 0.25 SD or more (Austria, Scotland).</p>
+          <span class="verdict yes">Chosen as the main estimate</span>
+        </div>
+        <div class="method">
+          <h3>Gap in standard deviations (effect size)</h3>
+          <p><b>What it is:</b> the gap is divided by the score SD (≈ 100 in PISA) and compared with empirical benchmarks (Hill, Bloom, Black &amp; Lipsey, 2008).</p>
+          <p><b>Advantage:</b> statistically sound and comparable across tests.</p>
+          <p><b>Drawback:</b> “0.8 SD” is hard to understand without a statistics background. The authors themselves stress there is no universal rule for interpreting it.</p>
+          <span class="verdict part">Used as the basis for the “20 points” estimate</span>
+        </div>
+        <div class="method">
+          <h3>Percentiles</h3>
+          <p><b>What it is:</b> how many percentiles higher a student would rank if the gap were closed.</p>
+          <p><b>Advantage:</b> Baird &amp; Pane (2019) find this the most reliable option and “years of learning” the least stable, because it depends heavily on the chosen conversion factor.</p>
+          <p><b>Drawback:</b> conveys the scale of the social issue less clearly.</p>
+          <span class="verdict part">We took the critique into account: that is why we show a range</span>
+        </div>
+        <div class="method">
+          <h3>LAYS (World Bank)</h3>
+          <p><b>What it is:</b> “learning-adjusted years of schooling”: expected years of school × (harmonized test score / 625).</p>
+          <p><b>Drawback:</b> designed to compare countries with each other, not groups of students within a country.</p>
+          <span class="verdict no">Not suitable for comparing student groups</span>
+        </div>
+        <p class="conclusion"><b>Our conclusion.</b> Years of schooling show the scale of inequality most clearly, so we kept them. But given the critique by Baird &amp; Pane (2019) and the differences between countries, we do not present a single number as exact. The main estimate is 20 points per year (OECD, 2021), always shown with a range of 10 to 25 points.</p>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Glossary</summary>
+      <div class="more-body">
+        <dl class="gloss">
+          <dt>OECD</dt><dd>Organisation for Economic Co-operation and Development. An international organisation of mostly high-income countries that runs the PISA test.</dd>
+          <dt>PISA</dt><dd>Programme for International Student Assessment: a test for 15-year-old students that the OECD runs every few years. We used the science results.</dd>
+          <dt>PISA score</dt><dd>The test result. The scale is built so that the OECD average is about 480–500, and most students score between 400 and 600.</dd>
+          <dt>ESCS</dt><dd>Index of economic, social and cultural status: how well-resourced and educated a student's family is (parents' education and occupation, books, a computer, a room of one's own at home).</dd>
+          <dt>Groups (quartiles)</dt><dd>Students in each country are split into 4 equal parts by ESCS: least advantaged 25%, below average, above average, most advantaged 25%.</dd>
+          <dt>Year of schooling</dt><dd>Over one school year, a student gains ≈ 20 PISA points on average.</dd>
+          <dt>Weight (W_FSTUWT)</dt><dd>Shows how many students in the country each test-taker “represents”. Using it makes results reflect the whole country more accurately.</dd>
+          <dt>PV1SCIE–PV10SCIE</dt><dd>10 plausible values of each student's score (this is how PISA accounts for measurement error). We average all ten.</dd>
+          <dt>SD (standard deviation)</dt><dd>How much students' scores vary around the average. In PISA it is ≈ 100 points.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details class="more last">
+      <summary>Sources</summary>
+      <div class="more-body">
+        <ul class="sources">
+          <li>Avvisati, F. &amp; Givord, P. (2021). <i>How much do 15-year-olds learn over one year of schooling? An international comparison based on PISA.</i> OECD Education Working Papers No. 257.</li>
+          <li>Hill, C. J., Bloom, H. S., Black, A. R. &amp; Lipsey, M. W. (2008). <i>Empirical Benchmarks for Interpreting Effect Sizes in Research.</i> Child Development Perspectives.</li>
+          <li>Baird, M. D. &amp; Pane, J. F. (2019). <i>Translating Standardized Effects of Education Programs Into More Interpretable Metrics.</i> Educational Researcher, 48(4).</li>
+          <li>Filmer, D. et al. (2018). <i>Learning-Adjusted Years of Schooling (LAYS).</i> World Bank.</li>
+          <li>Data: OECD, <a href="https://www.oecd.org/en/data/datasets/pisa-2025-database.html" target="_blank" rel="noopener">PISA 2025 Database</a>, student questionnaire (ESCS, W_FSTUWT, PV1SCIE–PV10SCIE).</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section class="share">
+    <button type="button" id="shareBtn">Share with friends</button>
+    <span class="muted" id="shareMsg">Show how success at school depends on the family a child grows up in.</span>
+  </section>
+
+  <footer>Data: PISA 2025, science. Australia, United Kingdom, United States, Czechia.</footer>
+</main>
+
+<script>
+  // ===== DATA: PISA 2025 mean science scores by ESCS quartile =====
+  // Weighted by W_FSTUWT, averaged over 10 PVs. To add a country, add a row
+  // (name = country name; loc = form used in the sentence, e.g. "the United States").
+  const DATA = [
+    { name: "Australia",       loc: "Australia",          prep: "In", Q1: 469.19, Q2: 499.66, Q3: 535.91, Q4: 549.18 },
+    { name: "United Kingdom",  loc: "the United Kingdom", prep: "In", Q1: 479.30, Q2: 506.27, Q3: 530.59, Q4: 559.31 },
+    { name: "United States",   loc: "the United States",  prep: "In", Q1: 456.93, Q2: 485.07, Q3: 511.30, Q4: 562.24 },
+    { name: "Czechia",         loc: "Czechia",            prep: "In", Q1: 446.25, Q2: 480.76, Q3: 504.97, Q4: 542.08 }
+  ];
+  // ==============================================================================
+
+  const PRESETS = [
+    { label: "Least vs most advantaged 25%", low: "Q1", high: "Q4",
+      who: "the least advantaged 25% of students are behind the most advantaged 25%" },
+    { label: "Least advantaged 25% vs above average", low: "Q1", high: "Q3",
+      who: "the least advantaged 25% of students are behind above-average students" },
+    { label: "Below average vs above average", low: "Q2", high: "Q3",
+      who: "below-average students are behind above-average students" }
+  ];
+  const FACTORS = [
+    { v: 20, label: "20 (OECD estimate)" },
+    { v: 25, label: "25 (upper bound)" },
+    { v: 10, label: "10 (lower bound)" }
+  ];
+
+  const $ = id => document.getElementById(id);
+  const fmt = n => n.toFixed(1);
+  const state = { c: 0, p: 0, f: 20, custom: null };
+
+  DATA.forEach((d, i) => {
+    const o = document.createElement("option"); o.value = i; o.textContent = d.name; $("country").appendChild(o);
+  });
+  $("country").addEventListener("change", e => { state.c = +e.target.value; state.custom = null; render(); });
+
+  function segButtons(boxId, items, onPick) {
+    items.forEach((it, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = it.label;
+      b.addEventListener("click", () => onPick(i));
+      $(boxId).appendChild(b);
+    });
+  }
+  segButtons("presets", PRESETS, i => { state.p = i; state.custom = null; render(); });
+  segButtons("factors", FACTORS, i => { state.f = FACTORS[i].v; render(); });
+
+  ["low", "high"].forEach(id => $(id).addEventListener("input", () => {
+    const lo = parseFloat($("low").value), hi = parseFloat($("high").value);
+    state.custom = (isNaN(lo) || isNaN(hi)) ? null : { lo, hi };
+    render(false);
+  }));
+
+
+  function render(syncInputs = true) {
+    const d = DATA[state.c], p = PRESETS[state.p], f = state.f;
+    const lo = state.custom ? state.custom.lo : d[p.low];
+    const hi = state.custom ? state.custom.hi : d[p.high];
+    const gap = hi - lo, yrs = Math.abs(gap) / f;
+
+    if (syncInputs) { $("low").value = lo; $("high").value = hi; }
+    $("country").value = state.c;
+    $("prep").textContent = d.prep;
+    $("loc").textContent = d.loc;
+    $("who").textContent = state.custom
+      ? (gap >= 0 ? "less advantaged students are behind more advantaged students" : "the first group is ahead of the second")
+      : p.who;
+    $("years").textContent = "≈ " + fmt(yrs) + " years";
+
+    [...$("presets").children].forEach((b, i) => b.setAttribute("aria-pressed", !state.custom && i === state.p));
+    [...$("factors").children].forEach((b, i) => b.setAttribute("aria-pressed", FACTORS[i].v === f));
+    $("range").textContent = "Across different estimates (10–25 points per year): from " + fmt(Math.abs(gap) / 25) + " to " + fmt(Math.abs(gap) / 10) + " years.";
+
+    drawScale(lo, hi, f);
+    drawRank();
+  }
+
+  const clampTag = x => Math.min(84, Math.max(16, x));
+  function drawScale(lo, hi, f) {
+    const mn = Math.min(400, Math.floor((Math.min(lo, hi) - 20) / 20) * 20);
+    const mx = Math.max(600, Math.ceil((Math.max(lo, hi) + 20) / 20) * 20);
+    const pos = v => (v - mn) / (mx - mn) * 100;
+    const a = Math.min(lo, hi), b = Math.max(lo, hi);
+    $("band").style.left = pos(a) + "%"; $("band").style.width = (pos(b) - pos(a)) + "%";
+    $("dotLow").style.left = pos(lo) + "%"; $("dotHigh").style.left = pos(hi) + "%";
+    // keep the labels from overlapping
+    const W = document.querySelector(".scale").clientWidth || 360;
+    const sep = Math.min(60, 150 / W * 100);           // minimum distance between labels, %
+    let tl = clampTag(pos(lo)), th = clampTag(pos(hi));
+    if (Math.abs(th - tl) < sep) {
+      const s = lo <= hi ? 1 : -1;
+      let m = (tl + th) / 2; m = Math.min(100 - sep / 2 - 2, Math.max(sep / 2 + 2, m));
+      tl = m - s * sep / 2; th = m + s * sep / 2;
+    }
+    $("tagLow").style.left = tl + "%"; $("tagHigh").style.left = th + "%";
+    $("tagLow").innerHTML = "<b>" + Math.round(lo) + "</b>less advantaged";
+    $("tagHigh").innerHTML = "<b>" + Math.round(hi) + "</b>more advantaged";
+    $("gaplabel").style.left = clampTag((pos(a) + pos(b)) / 2) + "%";
+    $("gaplabel").textContent = Math.round(b - a) + " points ≈ " + fmt((b - a) / f) + " years";
+    const t = $("ticks"); t.innerHTML = "";
+    for (let v = a + f; v < b - 0.5; v += f) {
+      const el = document.createElement("div"); el.className = "tick"; el.style.left = pos(v) + "%"; t.appendChild(el);
+    }
+    $("axMin").textContent = mn; $("axMax").textContent = mx;
+    $("legend").textContent = "PISA score scale. Each mark on the yellow band ≈ 1 year of schooling (" + f + " points).";
+  }
+
+  function drawRank() {
+    const box = $("rank"); box.innerHTML = "";
+    const rows = DATA.map((d, i) => ({ i, name: d.name, gap: d.Q4 - d.Q1 })).sort((a, b) => b.gap - a.gap);
+    const max = Math.max(...rows.map(r => r.gap));
+    rows.forEach(r => {
+      const b = document.createElement("button"); b.type = "button";
+      b.setAttribute("aria-current", r.i === state.c);
+      b.innerHTML = '<span>' + r.name + '</span><span class="bar"><i style="width:' + (r.gap / max * 100) + '%"></i></span>' +
+        '<span class="val">' + Math.round(r.gap) + ' points ≈ ' + fmt(r.gap / state.f) + ' years</span>';
+      b.addEventListener("click", () => {
+        state.c = r.i; state.p = 0; state.custom = null; render();
+        $("calc").scrollIntoView({ behavior: "smooth" });
+      });
+      box.appendChild(b);
+    });
+  }
+
+  // Завжди ділимося адресою опублікованого сайту (а не локального файлу).
+  // navigator.share лише на телефонах: у Chrome на Windows він може аварійно закривати вкладку.
+  const SITE_URL = "https://dariakalinova25-afk.github.io/PISA-calculator/";
+  $("shareBtn").addEventListener("click", async () => {
+    const url = location.protocol.startsWith("http") ? location.href.split("#")[0] : SITE_URL;
+    const mobile = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    if (mobile && navigator.share) {
+      try { await navigator.share({ title: document.title, url }); return; } catch (e) { /* скасовано — пробуємо скопіювати */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      $("shareMsg").textContent = "Link copied. Send it to your friends.";
+    } catch (e) {
+      $("shareMsg").textContent = "Copy this link: " + url;
+    }
+  });
+
+  render();
+
+  // cover: the gap in the most unequal country, in years (20 points = 1 year)
+  (function cover() {
+    const gaps = DATA.map(d => ({ name: d.loc, prep: d.prep, y: (d.Q4 - d.Q1) / 20 }));
+    const lo = Math.min(...gaps.map(g => g.y)), top = gaps.reduce((a, b) => (b.y > a.y ? b : a));
+    $("coverYears").textContent = Math.round(lo) + "–" + Math.round(top.y) + " years";
+    const n = Math.ceil(top.y), r = $("ruler");
+    for (let i = 0; i < n; i++) { const sp = document.createElement("span"); sp.appendChild(document.createElement("i")); r.appendChild(sp); }
+    $("rulerCap").textContent = "Each block is one school year. This is the gap in " + top.name + ": ≈ " + fmt(top.y) + " years.";
+    const fill = () => [...r.children].forEach((sp, i) => {
+      const w = Math.max(0, Math.min(1, top.y - i));
+      setTimeout(() => { sp.firstChild.style.width = (w * 100) + "%"; }, 150 + i * 160);
+    });
+    requestAnimationFrame(fill);
+  })();
+</script>
+</body>
+</html>
